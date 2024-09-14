@@ -1,0 +1,23 @@
+# Use the official Alpine base image
+FROM alpine:latest
+
+# Install Python and pip
+RUN apk add --no-cache python3 py3-pip
+
+# Create a virtual environment
+RUN python3 -m venv /venv
+
+# Activate the virtual environment and install the required Python packages
+RUN /venv/bin/pip install flask requests openshift kubernetes
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the current directory contents into the container at /app
+COPY . /app
+
+# Expose port 5000 for Flask
+EXPOSE 5000
+
+# Define the command to run the application
+CMD ["/venv/bin/python", "app.py"]
