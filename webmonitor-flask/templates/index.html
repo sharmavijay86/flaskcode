@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Monitoring</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .search-box {
+            margin-bottom: 10px;
+        }
+        .pagination {
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mt-5">URL Monitoring</h1>
+        <input type="text" id="urlSearch" class="form-control search-box" placeholder="Search URLs...">
+        <div class="row">
+            {% for group, counts in groups.items() %}
+            <div class="col-md-4">
+                <h3>{{ group }}</h3>
+                <span class="badge badge-success">UP: {{ counts['UP'] }}</span>
+                <span class="badge badge-danger">DOWN: {{ counts['DOWN'] }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        <table class="table table-striped mt-3" id="urlTable">
+            <thead>
+                <tr>
+                    <th>Server/IP</th>
+                    <th>Status</th>
+                    <th>Response Time (s)</th>
+                </tr>
+            </thead>
+            <tbody id="urlTableBody">
+                {% for url in urls %}
+                <tr>
+                    <td>{{ url['servernameorip'] }}</td>
+                    <td>{{ url['status'] }}</td>
+                    <td>{{ url['response_time'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <nav>
+            <ul class="pagination" id="urlPagination"></ul>
+        </nav>
+
+        <h1 class="mt-5">OpenShift Deployment Monitoring</h1>
+        <input type="text" id="openshiftSearch" class="form-control search-box" placeholder="Search OpenShift Deployments...">
+        <table class="table table-striped mt-3" id="openshiftTable">
+            <thead>
+                <tr>
+                    <th>Instance Name</th>
+                    <th>Namespace</th>
+                    <th>Down Deployments</th>
+                    <th>Active Deployments</th>
+                </tr>
+            </thead>
+            <tbody id="openshiftTableBody">
+                {% for instance in openshift_instances %}
+                <tr>
+                    <td>{{ instance['instance_name'] }}</td>
+                    <td>{{ instance['namespace'] }}</td>
+                    <td><a href="#" data-toggle="modal" data-target="#downModal{{ loop.index }}">{{ instance['down_count'] }}</a></td>
+                    <td><a href="#" data-toggle="modal" data-target="#activeModal{{ loop.index }}">{{ instance['active_count'] }}</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <nav>
+            <ul class="pagination" id="openshiftPagination"></ul>
+        </nav>
+
+        {% for instance in openshift_instances %}
+        <!-- Down Deployments Modal -->
+        <div class="modal fade" id="downModal{{ loop.index }}" tabindex="-1" role="dialog" aria-labelledby="downModalLabel{{ loop.index }}" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="downModalLabel{{ loop.index }}">Down Deployments for {{ instance['instance_name'] }}</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">×</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <ul>
+                            {% for deployment in instance['down_deployments'] %}
+                            <li>{{ deployment }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Deployments Modal -->
+        <div class="modal fade" id="activeModal{{ loop.index }}" tabindex="-1" role="dialog" aria-labelledby="activeModalLabel{{ loop.index }}" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="activeModalLabel{{ loop.index }}">Active Deployments for {{ instance['instance_name'] }}</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">×</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <ul>
+                            {% for deployment in instance['active_deployments'] %}
+                            <li>{{ deployment }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        function filterTable(inputId, tableId, tableBodyId, paginationId) {
+            var input, filter, table, tr, td, i, j, txtValue;
+            input = document.getElementById(inputId);
+            filter = input.value.toUpperCase();
+            table = document.getElementById(tableId);
+            tr = table.getElementsByTagName("tr");
+
+            for (i = 1; i < tr.length; i++) {
+                tr[i].style.display = "none";
+                td = tr[i].getElementsByTagName("td");
+                for (j = 0; j < td.length; j++) {
+                    if (td[j]) {
+                        txtValue = td[j].textContent || td[j].innerText;
+                        if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                            tr[i].style.display = "";
+                            break;
+                        }
+                    }
+                }
+            }
+            paginateTable(tableBodyId, paginationId, 10);
+        }
+
+        function paginateTable(tableBodyId, paginationId, rowsPerPage) {
+            var tableBody = document.getElementById(tableBodyId);
+            var pagination = document.getElementById(paginationId);
+            var rows = tableBody.getElementsByTagName("tr");
+            var rowCount = rows.length;
+            var pageCount = Math.ceil(rowCount / rowsPerPage);
+
+            pagination.innerHTML = "";
+
+            for (var i = 0; i < pageCount; i++) {
+                var li = document.createElement("li");
+                li.className = "page-item";
+                var a = document.createElement("a");
+                a.className = "page-link";
+                a.href = "#";
+                a.innerText = i + 1;
+                a.setAttribute("data-page", i);
+                li.appendChild(a);
+                pagination.appendChild(li);
+            }
+
+            for (var i = 0; i < rows.length; i++) {
+                rows[i].style.display = "none";
+            }
+
+            for (var i = 0; i < rowsPerPage; i++) {
+                if (rows[i]) {
+                    rows[i].style.display = "";
+                }
+            }
+
+            var pageLinks = pagination.getElementsByTagName("a");
+            for (var i = 0; i < pageLinks.length; i++) {
+                pageLinks[i].addEventListener("click", function(e) {
+                    e.preventDefault();
+                    var page = parseInt(this.getAttribute("data-page"));
+                    var start = page * rowsPerPage;
+                    var end = start + rowsPerPage;
+
+                    for (var i = 0; i < rows.length; i++) {
+                        rows[i].style.display = "none";
+                    }
+
+                    for (var i = start; i < end; i++) {
+                        if (rows[i]) {
+                            rows[i].style.display = "";
+                        }
+                    }
+                });
+            }
+        }
+
+        document.getElementById('urlSearch').addEventListener('keyup', function() {
+            filterTable('urlSearch', 'urlTable', 'urlTableBody', 'urlPagination');
+        });
+
+        document.getElementById('openshiftSearch').addEventListener('keyup', function() {
+            filterTable('openshiftSearch', 'openshiftTable', 'openshiftTableBody', 'openshiftPagination');
+        });
+
+        window.onload = function() {
+            paginateTable('urlTableBody', 'urlPagination', 10);
+            paginateTable('openshiftTableBody', 'openshiftPagination', 10);
+        };
+    </script>
+</body>
+</html>

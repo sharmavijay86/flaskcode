@@ -1,0 +1,3 @@
+instance_name,ocp_api_url,namespace,token
+example-instance,https://api.openshift.example.lan:6443,default,example-token
+example-instance2,https://api.openshift.example.lan:6443,default,example-token

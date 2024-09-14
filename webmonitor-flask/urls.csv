@@ -1,0 +1,5 @@
+servernameorip,monitoringprotocol,groupname,category
+facebook.com,http,Social Media,General
+google.com,http,Search Engine,General
+portal.azure.com,http,Cloud,General
+console.cloud.google.com,http,Cloud,General
